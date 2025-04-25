@@ -29,7 +29,7 @@ async def get_nome(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def get_idade(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     idade = update.message.text.strip()
     if not validar_idade(idade):
-        await update.message.reply_text("❌ Idade inválida. Digite um número maior ou igual a 16.")
+        await update.message.reply_text("❌ Idade inválida. Digite um número maior ou igual a 10.")
         return IDADE
     context.user_data["idade"] = int(idade)
     await update.message.reply_text("🏙️ Qual sua cidade e estado? (ex: Teresina - PI)")

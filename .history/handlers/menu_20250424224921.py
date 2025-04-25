@@ -34,7 +34,7 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     elif query.data == "csgo":
         await query.message.reply_text("🔥 FURIA no CS:GO: Line-up: [Jogadores] | Campeonatos: [Campeonatos]")
     elif query.data == "r6":
-        await query.message.reply_text("🔥 FURIA no R6: Line-up: | Campeonatos: [Campeonatos]")
+        await query.message.reply_text("🔥 FURIA no R6: Line-up: [Jogadores] | Campeonatos: [Campeonatos]")
     elif query.data == "valorant":
         await query.message.reply_text("🔥 FURIA no Valorant: Line-up: [Jogadores] | Campeonatos: [Campeonatos]")
 

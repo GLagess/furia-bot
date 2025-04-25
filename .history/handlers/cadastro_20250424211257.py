@@ -1,8 +1,10 @@
 import re
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import ContextTypes, ConversationHandler
 from services.database import salvar_usuario, usuario_existe
 from utils.validations import validar_nome, validar_idade, validar_email
+
+from handlers.menu import show_esports, show_physical_sports, show_influencers, show_team_info
 
 NOME, IDADE, CIDADE, EMAIL, INTERESSES = range(5)
 
@@ -15,7 +17,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("👋 Olá! Vamos fazer seu cadastro para entrar no universo da FURIA.\nQual o seu nome?")
     return NOME
 
-# Função para capturar o nome do usuário
 async def get_nome(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     nome = update.message.text.strip()
     if not validar_nome(nome):
@@ -25,17 +26,15 @@ async def get_nome(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("👍 Agora me diga sua idade:")
     return IDADE
 
-# Função para capturar a idade
 async def get_idade(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     idade = update.message.text.strip()
     if not validar_idade(idade):
-        await update.message.reply_text("❌ Idade inválida. Digite um número maior ou igual a 16.")
+        await update.message.reply_text("❌ Idade inválida. Digite um número maior ou igual a 10.")
         return IDADE
     context.user_data["idade"] = int(idade)
     await update.message.reply_text("🏙️ Qual sua cidade e estado? (ex: Teresina - PI)")
     return CIDADE
 
-# Função para capturar cidade
 async def get_cidade(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     cidade = update.message.text.strip()
     if len(cidade) < 3:
@@ -45,7 +44,6 @@ async def get_cidade(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("📧 Qual o seu e-mail?")
     return EMAIL
 
-# Função para capturar e-mail e exibir os botões principais
 async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     email = update.message.text.strip()
     if not validar_email(email):
@@ -53,28 +51,52 @@ async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return EMAIL
     context.user_data["email"] = email
 
-    # Menu Principal - Apresentação dos botões interativos
+    # Após o cadastro ser concluído, mostramos os botões de interação
     keyboard = [
-        [InlineKeyboardButton("🎮 Esportes Eletrônicos", callback_data="esports"),
-         InlineKeyboardButton("⚽ Esportes Físicos", callback_data="physical_sports")],
-        [InlineKeyboardButton("🌟 Influenciadores", callback_data="influencers"),
-         InlineKeyboardButton("🧠 Saiba Mais Sobre a FURIA", callback_data="about_furia")]
+        [KeyboardButton("🎮 Esportes Eletrônicos"), KeyboardButton("⚽ Esportes Físicos")],
+        [KeyboardButton("🌟 Influenciadores da FURIA"), KeyboardButton("🧠 Curiosidades do Time")]
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        "🔍 Escolha uma opção abaixo para explorar mais sobre a FURIA!",
-        reply_markup=reply_markup
+        "🔍 Quais assuntos da FURIA você mais curte?",
+        reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     )
     return INTERESSES
 
-# Função para lidar com as escolhas do usuário
 async def get_interesses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     escolha = update.message.text.strip()
     context.user_data["interesses"] = escolha
-    # A escolha será tratada pelo CallbackQueryHandler
+    data = context.user_data
+    user_id = update.effective_user.id
+
+    # Salva os dados do usuário no Firestore
+    salvar_usuario(user_id, data)
+
+    # Respostas com base na escolha do usuário
+    if escolha == "🎮 Esportes Eletrônicos":
+        await show_esports(update, context)
+    elif escolha == "⚽ Esportes Físicos":
+        await show_physical_sports(update, context)
+    elif escolha == "🌟 Influenciadores da FURIA":
+        await show_influencers(update, context)
+    elif escolha == "🧠 Curiosidades do Time":
+        await show_team_info(update, context)
+    else:
+        await update.message.reply_text("❌ Opção não reconhecida. Tente novamente.")
+        return INTERESSES
+
+    # Exibe as informações cadastradas após a escolha
+    await update.message.reply_text(
+        f"✅ Cadastro finalizado! 👇 Suas informações:\n\n"
+        f"👤 Nome: {data['nome']}\n"
+        f"🎂 Idade: {data['idade']}\n"
+        f"🏙️ Cidade: {data['cidade']}\n"
+        f"📧 E-mail: {data['email']}\n"
+        f"🎯 Interesse: {data['interesses']}\n\n"
+        f"Agora é só explorar o conteúdo! 😎"
+    )
+
     return ConversationHandler.END
 
-# Função para cancelar o processo de cadastro
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text("Cadastro cancelado. Você pode começar novamente com /start.")
     return ConversationHandler.END
